@@ -14,6 +14,11 @@ Beautiful analog and digital clock display.
 - **Controls**: A for analog, D for digital, B for both, Q to quit
 - **Features**: Real-time updates, analog clock face, 7-segment digital display
 
+### 3. **ASCII Fire** 🔥
+Realistic fire animation effect.
+- **Controls**: Q to quit, +/- to adjust intensity, ← → to adjust wind
+- **Features**: Realistic fire physics, wind effects, adjustable intensity
+
 ## 📋 Requirements
 
 ### Windows
@@ -34,6 +39,7 @@ python <name>.py
 # Windows
 python windows\bouncing_ball.py
 python windows\clock.py
+python windows\fire.py
 ```
 
 ## 🌟 Features
