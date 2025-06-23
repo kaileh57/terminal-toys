@@ -24,6 +24,11 @@ The classic sliding tile puzzle game.
 - **Controls**: Arrow keys or WASD to slide tiles, Q to quit
 - **Features**: Colorful tiles, score tracking, win/loss conditions
 
+### 5. **ASCII Paint** 🎨
+A simple drawing application for your terminal.
+- **Controls**: Arrow keys to move, Space to draw, C to change color, E to erase, L for line mode, F to fill, S to save, Q to quit
+- **Features**: Drawing, erasing, line mode, flood fill, multiple colors, and saving your art.
+
 ## 📋 Requirements
 
 ### Windows
@@ -46,6 +51,7 @@ python windows\bouncing_ball.py
 python windows\clock.py
 python windows\fire.py
 python windows\game_2048.py
+python windows\paint.py
 ```
 
 ## 🌟 Features
