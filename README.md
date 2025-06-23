@@ -19,6 +19,11 @@ Realistic fire animation effect.
 - **Controls**: Q to quit, +/- to adjust intensity, ← → to adjust wind
 - **Features**: Realistic fire physics, wind effects, adjustable intensity
 
+### 4. **2048 Game** 🔢
+The classic sliding tile puzzle game.
+- **Controls**: Arrow keys or WASD to slide tiles, Q to quit
+- **Features**: Colorful tiles, score tracking, win/loss conditions
+
 ## 📋 Requirements
 
 ### Windows
@@ -40,6 +45,7 @@ python <name>.py
 python windows\bouncing_ball.py
 python windows\clock.py
 python windows\fire.py
+python windows\game_2048.py
 ```
 
 ## 🌟 Features
