@@ -34,6 +34,11 @@ Cellular automaton simulation.
 - **Controls**: Arrow keys to move, Space to toggle cell, P to play/pause, C to clear, R to randomize, 1-5 for patterns, Q to quit
 - **Features**: Classic Conway's Game of Life rules, adjustable speed, pre-defined patterns, manual cell toggling.
 
+### 7. **Tic-Tac-Toe** ⭕
+Classic game with an AI opponent.
+- **Controls**: Arrow keys to move, Space to place, 1 for Easy AI, 2 for Hard AI, Q to quit
+- **Features**: Play against another player or an AI with two difficulty levels.
+
 ## 📋 Requirements
 
 ### Windows
@@ -58,6 +63,7 @@ python windows\fire.py
 python windows\game_2048.py
 python windows\paint.py
 python windows\life.py
+python windows\tictactoe.py
 ```
 
 ## 🌟 Features
