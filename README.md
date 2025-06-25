@@ -29,6 +29,11 @@ A simple drawing application for your terminal.
 - **Controls**: Arrow keys to move, Space to draw, C to change color, E to erase, L for line mode, F to fill, S to save, Q to quit
 - **Features**: Drawing, erasing, line mode, flood fill, multiple colors, and saving your art.
 
+### 6. **Conway's Game of Life** 🧬
+Cellular automaton simulation.
+- **Controls**: Arrow keys to move, Space to toggle cell, P to play/pause, C to clear, R to randomize, 1-5 for patterns, Q to quit
+- **Features**: Classic Conway's Game of Life rules, adjustable speed, pre-defined patterns, manual cell toggling.
+
 ## 📋 Requirements
 
 ### Windows
@@ -52,6 +57,7 @@ python windows\clock.py
 python windows\fire.py
 python windows\game_2048.py
 python windows\paint.py
+python windows\life.py
 ```
 
 ## 🌟 Features
