@@ -39,6 +39,11 @@ Classic game with an AI opponent.
 - **Controls**: Arrow keys to move, Space to place, 1 for Easy AI, 2 for Hard AI, Q to quit
 - **Features**: Play against another player or an AI with two difficulty levels.
 
+### 8. **Pipes Screensaver** 🚰
+Classic Windows pipes screensaver recreation.
+- **Controls**: Q to quit, + to add pipe, - to remove pipe, C to clear all, R to reset
+- **Features**: Animated colorful pipes that grow and change direction, realistic pipe connections, multiple simultaneous pipes.
+
 ## 📋 Requirements
 
 ### Windows
@@ -64,6 +69,7 @@ python windows\game_2048.py
 python windows\paint.py
 python windows\life.py
 python windows\tictactoe.py
+python windows\pipes.py
 ```
 
 ## 🌟 Features
@@ -88,4 +94,4 @@ python windows\tictactoe.py
 Have fun playing with these terminal toys! Feel free to modify and extend them as you like. Each one is designed to be simple enough to understand and modify while being fun to play with.
 
 ---
-Made with ❤️ for terminal enthusiasts everywhere! 
+Made with ❤️ for terminal enthusiasts everywhere!
