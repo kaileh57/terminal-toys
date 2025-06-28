@@ -44,6 +44,11 @@ Classic Windows pipes screensaver recreation.
 - **Controls**: Q to quit, + to add pipe, - to remove pipe, C to clear all, R to reset
 - **Features**: Animated colorful pipes that grow and change direction, realistic pipe connections, multiple simultaneous pipes.
 
+### 9. **Tetris** 🧩
+The classic falling block puzzle game.
+- **Controls**: A/D or Arrow keys to move, W/Up to rotate, S/Down to drop faster, Space for hard drop, Q to quit
+- **Features**: Classic Tetris gameplay, line clearing, scoring system, increasing difficulty levels, colorful blocks.
+
 ## 📋 Requirements
 
 ### Windows
@@ -70,6 +75,7 @@ python windows\paint.py
 python windows\life.py
 python windows\tictactoe.py
 python windows\pipes.py
+python windows\tetris.py
 ```
 
 ## 🌟 Features
