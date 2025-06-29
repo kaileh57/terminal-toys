@@ -49,6 +49,11 @@ The classic falling block puzzle game.
 - **Controls**: A/D or Arrow keys to move, W/Up to rotate, S/Down to drop faster, Space for hard drop, Q to quit
 - **Features**: Classic Tetris gameplay, line clearing, scoring system, increasing difficulty levels, colorful blocks.
 
+### 10. **Snake** 🐍
+Classic snake game with colorful graphics.
+- **Controls**: Arrow keys or WASD to move, Q to quit
+- **Features**: Colorful snake and food, score tracking, increasing speed, wall and self-collision detection.
+
 ## 📋 Requirements
 
 ### Windows
@@ -76,6 +81,7 @@ python windows\life.py
 python windows\tictactoe.py
 python windows\pipes.py
 python windows\tetris.py
+python windows\snake.py
 ```
 
 ## 🌟 Features
