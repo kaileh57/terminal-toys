@@ -8,7 +8,7 @@ Works on Windows, macOS, and Linux
 
 import sys
 from collections import deque
-from terminal_utils import (
+from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
     get_terminal_size, KeyboardInput
 )

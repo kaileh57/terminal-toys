@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "terminal-toys"
+version = "1.0.0"
+description = "A collection of fun and interactive terminal animations and games"
+readme = "README.md"
+requires-python = ">=3.6"
+license = {text = "MIT"}
+authors = [
+    {name = "Kaileh57", email = "kaileh5757@gmail.com"},
+]
+keywords = ["terminal", "games", "ascii", "animation", "cli"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Games/Entertainment",
+]
+
+[project.scripts]
+# Main entry points for each game/animation
+bouncing-ball = "terminal_toys.bouncing_ball:main"
+terminal-clock = "terminal_toys.clock:main"
+fire = "terminal_toys.fire:main"
+2048 = "terminal_toys.game_2048:main"
+life = "terminal_toys.life:main"
+matrix-rain = "terminal_toys.matrix_rain:main"
+paint = "terminal_toys.paint:main"
+pipes = "terminal_toys.pipes:main"
+snake = "terminal_toys.snake:main"
+tetris = "terminal_toys.tetris:main"
+tictactoe = "terminal_toys.tictactoe:main"
+
+# Windows-specific versions
+bouncing-ball-win = "terminal_toys.windows.bouncing_ball:main"
+clock-win = "terminal_toys.windows.clock:main"
+fire-win = "terminal_toys.windows.fire:main"
+2048-win = "terminal_toys.windows.game_2048:main"
+life-win = "terminal_toys.windows.life:main"
+matrix-rain-win = "terminal_toys.windows.matrix_rain:main"
+paint-win = "terminal_toys.windows.paint:main"
+pipes-win = "terminal_toys.windows.pipes:main"
+snake-win = "terminal_toys.windows.snake:main"
+tetris-win = "terminal_toys.windows.tetris:main"
+tictactoe-win = "terminal_toys.windows.tictactoe:main"
+
+# Main launcher
+terminal-toys = "terminal_toys.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/kaileh57/terminal-toys"
+Repository = "https://github.com/kaileh57/terminal-toys" 

@@ -7,7 +7,7 @@ Works on Windows, macOS, and Linux
 
 import sys
 import random
-from terminal_utils import (
+from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
     get_terminal_size, KeyboardInput
 )
