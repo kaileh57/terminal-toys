@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """
-Tic-Tac-Toe for Windows - Classic game with AI opponent
+Tic-Tac-Toe - Cross-platform classic game with AI opponent
 Controls: Arrow keys to move, Space to place, 1 for Easy AI, 2 for Hard AI, Q to quit
+Works on Windows, macOS, and Linux
 """
 
-import os
 import sys
-import msvcrt
 import random
+from terminal_utils import (
+    clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
+    get_terminal_size, KeyboardInput
+)
 
 # Colors
 BLUE = '\033[94m'
@@ -15,9 +18,6 @@ RED = '\033[91m'
 GREEN = '\033[92m'
 YELLOW = '\033[93m'
 RESET = '\033[0m'
-
-# Enable ANSI colors in Windows
-os.system('color')
 
 class TicTacToe:
     def __init__(self):
@@ -133,7 +133,7 @@ class TicTacToe:
             
     def draw(self):
         """Draw the game board"""
-        os.system('cls')
+        clear_screen()
         
         print(f"{BLUE}╔═══════════════════════════╗{RESET}")
         print(f"{BLUE}║{RESET}      TIC-TAC-TOE          {BLUE}║{RESET}")
@@ -191,25 +191,12 @@ class TicTacToe:
                 
         print("\nControls: ←↑→↓ move, Space place, 1 Easy AI, 2 Hard AI, R reset, Q quit")
 
-def get_key():
-    """Get keyboard input for Windows"""
-    key = msvcrt.getch()
-    if key in [b'\xe0', b'\x00']:  # Special keys (arrows)
-        key = msvcrt.getch()
-        if key == b'H':  # Up arrow
-            return 'UP'
-        elif key == b'P':  # Down arrow
-            return 'DOWN'
-        elif key == b'K':  # Left arrow
-            return 'LEFT'
-        elif key == b'M':  # Right arrow
-            return 'RIGHT'
-    else:
-        return key.decode('utf-8', errors='ignore')
-    return None
-
 def main():
+    enable_ansi_colors()
+    kb = KeyboardInput()
+    
     try:
+        hide_cursor()
         game = TicTacToe()
         
         while True:
@@ -232,7 +219,7 @@ def main():
                 continue
                 
             # Handle input
-            key = get_key()
+            key = kb.get_key()
             if key:
                 if key == 'q' or key == 'Q':
                     break
@@ -261,8 +248,11 @@ def main():
                             else:
                                 game.current_player = 'O' if game.current_player == 'X' else 'X'
                                 
+    except KeyboardInterrupt:
+        pass
     finally:
-        os.system('cls')
+        show_cursor()
+        clear_screen()
 
 if __name__ == "__main__":
     main() 

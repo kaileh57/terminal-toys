@@ -1,6 +1,8 @@
 # Terminal Toys 🎮
 
-A collection of fun and interactive terminal animations and utilities for Windows!
+A collection of fun and interactive terminal animations and utilities! Each toy is available in two versions:
+- **Cross-platform versions** - Work on Windows, macOS, and Linux
+- **Windows-optimized versions** - In the `windows/` directory
 
 ## 🎨 Animations & Utilities
 
@@ -54,24 +56,54 @@ Classic snake game with colorful graphics.
 - **Controls**: Arrow keys or WASD to move, Q to quit
 - **Features**: Colorful snake and food, score tracking, increasing speed, wall and self-collision detection.
 
+### 11. **Matrix Rain** 💻
+Matrix-style falling characters.
+- **Controls**: Q to quit
+- **Features**: Green cascading characters with Japanese katakana, variable speeds, realistic matrix effect.
+
 ## 📋 Requirements
 
-### Windows
+### Cross-Platform Versions
+- Python 3.6+
+- Works on Windows, macOS, and Linux
+- No additional packages required (uses only Python standard library)
+
+### Windows-Specific Versions
 - Python 3.6+
 - Windows 10 or later (for ANSI color support)
-- Standard Python libraries (no additional packages required)
+- Uses Windows-specific optimizations
 
 ## 🚀 Usage
 
-### Windows
+### Cross-Platform (Windows/macOS/Linux)
+```bash
+# Run any toy directly
+python bouncing_ball.py
+python clock.py
+python snake.py
+python matrix_rain.py
+# ... etc
+```
+
+### Windows-Specific Versions
 ```cmd
+# Run Windows-optimized versions
 cd windows
-python <name>.py
+python bouncing_ball.py
+python clock.py
+python fire.py
+# ... etc
 ```
 
 ### Examples:
 ```bash
-# Windows
+# Cross-platform versions (work everywhere)
+python bouncing_ball.py
+python clock.py
+python snake.py
+python matrix_rain.py
+
+# Windows-specific versions (Windows only)
 python windows\bouncing_ball.py
 python windows\clock.py
 python windows\fire.py
@@ -82,10 +114,12 @@ python windows\tictactoe.py
 python windows\pipes.py
 python windows\tetris.py
 python windows\snake.py
+python windows\matrix_rain.py
 ```
 
 ## 🌟 Features
 
+- **Cross-platform support**: Main versions work on Windows, macOS, and Linux
 - **Colorful**: All animations use ANSI colors for a vibrant experience
 - **No dependencies**: Uses only Python standard library
 - **Keyboard controls**: Responsive keyboard input handling
@@ -93,13 +127,31 @@ python windows\snake.py
 
 ## 🐛 Troubleshooting
 
-### Colors not working on Windows?
-- Make sure you're using Windows 10 or later
-- Try running in Windows Terminal for best color support
+### Colors not working?
+- **Windows**: Make sure you're using Windows 10 or later, or try Windows Terminal
+- **macOS/Linux**: Most modern terminals support ANSI colors by default
 
 ### Game crashes on startup?
 - Check Python version: `python --version` (should be 3.6+)
-- Make sure you have appropriate permissions
+- Make sure terminal_utils.py is in the same directory for cross-platform versions
+- Try the Windows-specific versions if on Windows
+
+### Arrow keys not working on macOS/Linux?
+- Make sure your terminal emulator properly sends escape sequences
+- Try using WASD keys as an alternative (where supported)
+
+## 🔧 Technical Details
+
+The cross-platform versions use a `terminal_utils.py` module that handles:
+- Platform detection
+- Cross-platform keyboard input (using `msvcrt` on Windows, `termios` on Unix)
+- Screen clearing and cursor control
+- ANSI color support
+
+Windows-specific versions are optimized with:
+- Direct `msvcrt` usage for faster input
+- Windows console API features
+- Optimized screen clearing
 
 ## 🎉 Enjoy!
 
