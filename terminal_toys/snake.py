@@ -10,7 +10,8 @@ import time
 import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Colors
@@ -29,7 +30,7 @@ class Snake:
         self.food = self.spawn_food()
         self.score = 0
         self.game_over = False
-        self.speed = 0.1
+        self.speed = 0.15  # Slightly slower for better rendering in WSL
         
     def spawn_food(self):
         """Spawn food at random location"""
@@ -63,7 +64,7 @@ class Snake:
             self.score += 10
             self.food = self.spawn_food()
             # Increase speed
-            self.speed = max(0.05, self.speed - 0.003)
+            self.speed = max(0.05, self.speed - 0.005)
         else:
             self.snake.pop()
             
@@ -74,7 +75,8 @@ class Snake:
             
     def draw(self):
         """Draw the game"""
-        clear_screen()
+        # Move cursor to top-left for consistent rendering
+        move_cursor(1, 1)
         
         # Create game board
         board = [[' ' for _ in range(self.width)] for _ in range(self.height)]
@@ -104,35 +106,54 @@ class Snake:
         board[self.food[1]][self.food[0]] = '♦'
         
         # Print board with colors
+        output = []
         for y, row in enumerate(board):
+            line = ""
             for x, cell in enumerate(row):
                 if cell in '═║╔╗╚╝':
-                    print(f"{BLUE}{cell}{RESET}", end='')
+                    line += f"{BLUE}{cell}{RESET}"
                 elif cell == '●':
-                    print(f"{GREEN}{cell}{RESET}", end='')
+                    line += f"{GREEN}{cell}{RESET}"
                 elif cell == '○':
-                    print(f"{GREEN}{cell}{RESET}", end='')
+                    line += f"{GREEN}{cell}{RESET}"
                 elif cell == '♦':
-                    print(f"{RED}{cell}{RESET}", end='')
+                    line += f"{RED}{cell}{RESET}"
                 else:
-                    print(cell, end='')
-            print()
-            
+                    line += cell
+            output.append(line)
+        
+        # Print all at once for smoother rendering
+        print('\n'.join(output))
         print(f"\nScore: {self.score}")
         print("Controls: Arrow keys or WASD to move, Q to quit")
         
         if self.game_over:
             print(f"\n{RED}*** GAME OVER ***{RESET}")
             print(f"Final Score: {self.score}")
+        
+        # Force output to display immediately
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        # Use alternate screen buffer for cleaner display
+        enable_alternate_screen()
         hide_cursor()
-        game = Snake()
+        clear_screen()
+        
+        # Get terminal size and create appropriately sized game
+        term_width, term_height = get_terminal_size()
+        game_width = min(60, term_width - 2)
+        game_height = min(25, term_height - 5)
+        
+        game = Snake(game_width, game_height)
         last_move = time.time()
+        
+        # Initial draw
+        game.draw()
         
         while not game.game_over:
             # Handle input
@@ -149,22 +170,28 @@ def main():
                 elif key == 'RIGHT' or key == 'd' or key == 'D':
                     game.change_direction(1, 0)
                     
-            # Move snake
-            if time.time() - last_move > game.speed:
+            # Move snake at regular intervals
+            current_time = time.time()
+            if current_time - last_move > game.speed:
                 game.move()
                 game.draw()
-                last_move = time.time()
+                last_move = current_time
                 
-            time.sleep(0.05)
+            # Small sleep to prevent CPU spinning
+            time.sleep(0.01)
             
         # Wait for key press if game over
         if game.game_over:
-            time.sleep(2)
+            flush_output()
+            print("\nPress any key to exit...")
+            kb.get_key()
             
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

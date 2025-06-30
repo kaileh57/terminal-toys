@@ -10,7 +10,8 @@ import time
 import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Pipe characters
@@ -166,7 +167,7 @@ class PipesScreensaver:
                 
     def draw(self):
         """Draw the screen"""
-        clear_screen()
+        move_cursor(1, 1)
         
         # Clear screen
         self.screen = [[' ' for _ in range(self.width)] for _ in range(self.height)]
@@ -212,7 +213,8 @@ class PipesScreensaver:
                                 
                         self.screen[y][x] = char
                         
-        # Print screen with colors
+        # Build output with colors
+        output = []
         for y, row in enumerate(self.screen):
             line = ""
             for x, cell in enumerate(row[:80]):  # Limit width
@@ -225,17 +227,25 @@ class PipesScreensaver:
                         break
                 if not colored:
                     line += cell
-            print(line)
+            output.append(line)
             
-        print(f"\n{COLORS[2]}Press Q to quit{RESET}")
+        output.append(f"\n{COLORS[2]}Press Q to quit{RESET}")
+        
+        # Print all at once
+        print('\n'.join(output))
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        enable_alternate_screen()
         hide_cursor()
+        clear_screen()
+        
         screensaver = PipesScreensaver()
+        screensaver.draw()
         
         while True:
             # Check for quit
@@ -245,12 +255,14 @@ def main():
                 
             screensaver.update()
             screensaver.draw()
-            time.sleep(0.15)
+            time.sleep(0.12)  # Slightly slower for smoother animation in WSL
             
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

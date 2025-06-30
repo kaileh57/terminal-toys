@@ -11,7 +11,8 @@ import random
 from typing import List, Tuple, Optional
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Tetris pieces (each piece is a list of rotations)
@@ -148,7 +149,7 @@ class Tetris:
         
     def draw(self):
         """Draw the game board"""
-        clear_screen()
+        move_cursor(1, 1)
         
         # Create display board
         display = [row[:] for row in self.board]
@@ -163,40 +164,51 @@ class Tetris:
                         if 0 <= board_y < self.height and 0 <= board_x < self.width:
                             display[board_y][board_x] = self.current_piece_type + 1
                             
+        output = []
+        
         # Draw top border
-        print("┌" + "─" * (self.width * 2) + "┐")
+        output.append("┌" + "─" * (self.width * 2) + "┐")
         
         # Draw board
         for row in display:
-            print("│", end="")
+            line = "│"
             for cell in row:
                 if cell:
-                    print(f"{COLORS[cell-1]}██{RESET}", end="")
+                    line += f"{COLORS[cell-1]}██{RESET}"
                 else:
-                    print("  ", end="")
-            print("│")
+                    line += "  "
+            line += "│"
+            output.append(line)
             
         # Draw bottom border
-        print("└" + "─" * (self.width * 2) + "┘")
+        output.append("└" + "─" * (self.width * 2) + "┘")
         
         # Draw stats
-        print(f"\nScore: {self.score}")
-        print(f"Lines: {self.lines}")
-        print(f"Level: {self.level}")
-        print("\nControls: ← → ↓ (move), ↑ (rotate), Space (hard drop), Q (quit)")
+        output.append(f"\nScore: {self.score}")
+        output.append(f"Lines: {self.lines}")
+        output.append(f"Level: {self.level}")
+        output.append("\nControls: ← → ↓ (move), ↑ (rotate), Space (hard drop), Q (quit)")
         
         if self.game_over:
-            print("\n*** GAME OVER ***")
-            print("Press any key to exit...")
+            output.append("\n*** GAME OVER ***")
+            output.append("Press any key to exit...")
+            
+        # Print all at once
+        print('\n'.join(output))
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        enable_alternate_screen()
         hide_cursor()
+        clear_screen()
+        
         game = Tetris()
         game.new_piece()
+        game.draw()
         
         last_draw = time.time()
         needs_redraw = True
@@ -232,16 +244,19 @@ def main():
                 last_draw = time.time()
                 needs_redraw = False
                 
-            time.sleep(0.05)  # Small delay for responsiveness
+            time.sleep(0.01)  # Small delay for responsiveness
             
         # Wait for key press if game over
         if game.game_over:
+            flush_output()
             kb.get_key()
                 
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

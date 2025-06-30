@@ -9,7 +9,8 @@ import sys
 import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Colors
@@ -133,19 +134,21 @@ class TicTacToe:
             
     def draw(self):
         """Draw the game board"""
-        clear_screen()
+        move_cursor(1, 1)
         
-        print(f"{BLUE}╔═══════════════════════════╗{RESET}")
-        print(f"{BLUE}║{RESET}      TIC-TAC-TOE          {BLUE}║{RESET}")
-        print(f"{BLUE}╚═══════════════════════════╝{RESET}")
-        print()
+        output = []
+        
+        output.append(f"{BLUE}╔═══════════════════════════╗{RESET}")
+        output.append(f"{BLUE}║{RESET}      TIC-TAC-TOE          {BLUE}║{RESET}")
+        output.append(f"{BLUE}╚═══════════════════════════╝{RESET}")
+        output.append("")
         
         # Draw board
-        print("     0   1   2")
-        print("   ┌───┬───┬───┐")
+        output.append("     0   1   2")
+        output.append("   ┌───┬───┬───┐")
         
         for y in range(3):
-            print(f" {y} │", end="")
+            line = f" {y} │"
             for x in range(3):
                 # Determine what to display
                 if self.board[y][x] == 'X':
@@ -157,56 +160,64 @@ class TicTacToe:
                     
                 # Highlight cursor position
                 if x == self.cursor_x and y == self.cursor_y and not self.game_over:
-                    print(f"{YELLOW} {symbol} {RESET}", end="")
+                    line += f"{YELLOW} {symbol} {RESET}"
                 else:
-                    print(f" {symbol} ", end="")
+                    line += f" {symbol} "
                     
                 if x < 2:
-                    print("│", end="")
-            print("│")
+                    line += "│"
+            line += "│"
+            output.append(line)
             
             if y < 2:
-                print("   ├───┼───┼───┤")
+                output.append("   ├───┼───┼───┤")
                 
-        print("   └───┴───┴───┘")
-        print()
+        output.append("   └───┴───┴───┘")
+        output.append("")
         
         # Status
         if self.game_over:
             if self.winner == 'tie':
-                print(f"{YELLOW}It's a tie!{RESET}")
+                output.append(f"{YELLOW}It's a tie!{RESET}")
             else:
                 winner_color = RED if self.winner == 'X' else BLUE
-                print(f"{winner_color}Player {self.winner} wins!{RESET}")
-            print("\nPress R to play again")
+                output.append(f"{winner_color}Player {self.winner} wins!{RESET}")
+            output.append("\nPress R to play again")
         else:
             player_color = RED if self.current_player == 'X' else BLUE
-            print(f"Current player: {player_color}{self.current_player}{RESET}")
+            output.append(f"Current player: {player_color}{self.current_player}{RESET}")
             
             if self.ai_mode:
                 mode = "Easy AI" if self.ai_mode == 'easy' else "Hard AI"
-                print(f"Mode: vs {mode}")
+                output.append(f"Mode: vs {mode}")
             else:
-                print("Mode: Two Players")
+                output.append("Mode: Two Players")
                 
-        print("\nControls: ←↑→↓ move, Space place, 1 Easy AI, 2 Hard AI, R reset, Q quit")
+        output.append("\nControls: ←↑→↓ move, Space place, 1 Easy AI, 2 Hard AI, R reset, Q quit")
+        
+        # Print all at once
+        print('\n'.join(output))
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        enable_alternate_screen()
         hide_cursor()
+        clear_screen()
+        
         game = TicTacToe()
+        game.draw()
         
         while True:
-            game.draw()
-            
             # Check for winner
             winner = game.check_winner()
             if winner and not game.game_over:
                 game.winner = winner
                 game.game_over = True
+                game.draw()
                 
             # AI move
             if not game.game_over and game.ai_mode and game.current_player == game.ai_symbol:
@@ -216,10 +227,11 @@ def main():
                     game.ai_move_hard()
                     
                 game.current_player = game.player_symbol
+                game.draw()
                 continue
                 
             # Handle input
-            key = kb.get_key()
+            key = kb.get_key(0.1)
             if key:
                 if key == 'q' or key == 'Q':
                     break
@@ -248,10 +260,14 @@ def main():
                             else:
                                 game.current_player = 'O' if game.current_player == 'X' else 'X'
                                 
+                game.draw()
+                                
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

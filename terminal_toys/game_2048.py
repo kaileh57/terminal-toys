@@ -10,7 +10,8 @@ import sys
 import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Tile colors
@@ -129,59 +130,68 @@ class Game2048:
         
     def draw(self):
         """Draw the game board"""
-        clear_screen()
+        move_cursor(1, 1)
         
-        print(f"╔{'═' * 31}╗")
-        print(f"║{'2048 GAME':^31}║")
-        print(f"╠{'═' * 31}╣")
+        output = []
+        
+        output.append(f"╔{'═' * 31}╗")
+        output.append(f"║{'2048 GAME':^31}║")
+        output.append(f"╠{'═' * 31}╣")
         score_line = f"Score: {self.score:<10} Moves: {self.moves:<3}"
-        print(f"║ {score_line:^29} ║")
-        print(f"╚{'═' * 31}╝")
-        print()
+        output.append(f"║ {score_line:^29} ║")
+        output.append(f"╚{'═' * 31}╝")
+        output.append("")
         
         # Draw board
-        print("┌" + ("─" * 7 + "┬") * (self.size - 1) + "─" * 7 + "┐")
+        output.append("┌" + ("─" * 7 + "┬") * (self.size - 1) + "─" * 7 + "┐")
         
         for i, row in enumerate(self.board):
-            print("│", end="")
+            line = "│"
             for j, val in enumerate(row):
                 if val == 0:
-                    print(f"       ", end="")
+                    line += f"       "
                 else:
                     color = TILE_COLORS.get(val, '\033[97m')
-                    print(f"{color}{val:^7}{RESET}", end="")
+                    line += f"{color}{val:^7}{RESET}"
                     
                 if j < self.size - 1:
-                    print("│", end="")
-            print("│")
+                    line += "│"
+            line += "│"
+            output.append(line)
             
             if i < self.size - 1:
-                print("├" + ("─" * 7 + "┼") * (self.size - 1) + "─" * 7 + "┤")
+                output.append("├" + ("─" * 7 + "┼") * (self.size - 1) + "─" * 7 + "┤")
                 
-        print("└" + ("─" * 7 + "┴") * (self.size - 1) + "─" * 7 + "┘")
+        output.append("└" + ("─" * 7 + "┴") * (self.size - 1) + "─" * 7 + "┘")
         
-        print("\nControls: ← ↑ → ↓ or WASD to move, Q to quit")
+        output.append("\nControls: ← ↑ → ↓ or WASD to move, Q to quit")
         
         if self.won:
-            print(f"\n{TILE_COLORS[2048]}*** CONGRATULATIONS! YOU WON! ***{RESET}")
-            print("Press C to continue playing or Q to quit")
+            output.append(f"\n{TILE_COLORS[2048]}*** CONGRATULATIONS! YOU WON! ***{RESET}")
+            output.append("Press C to continue playing or Q to quit")
         elif self.game_over:
-            print(f"\n\033[91m*** GAME OVER ***{RESET}")
-            print(f"Final Score: {self.score}")
+            output.append(f"\n\033[91m*** GAME OVER ***{RESET}")
+            output.append(f"Final Score: {self.score}")
+            
+        # Print all at once
+        print('\n'.join(output))
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        enable_alternate_screen()
         hide_cursor()
+        clear_screen()
+        
         game = Game2048()
+        game.draw()
         
         while True:
-            game.draw()
-            
             # Handle input
-            key = kb.get_key()
+            key = kb.get_key(0.1)
             if key:
                 if key == 'q' or key == 'Q':
                     break
@@ -197,10 +207,14 @@ def main():
                     elif key == 'RIGHT' or key == 'd' or key == 'D':
                         game.move('right')
                         
+                game.draw()
+                        
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

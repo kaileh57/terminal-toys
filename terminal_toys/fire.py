@@ -10,7 +10,8 @@ import time
 import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Fire characters from cold to hot
@@ -89,7 +90,9 @@ class FireEffect:
                     
     def draw(self):
         """Draw the fire effect"""
-        clear_screen()
+        move_cursor(1, 1)
+        
+        output = []
         
         # Draw fire
         for y in range(self.height):
@@ -102,19 +105,27 @@ class FireEffect:
                     line += f"{color}{char}{RESET}"
                 else:
                     line += " "
-            print(line)
+            output.append(line)
             
         # Status line
-        print(f"\nIntensity: {self.intensity} | Wind: {self.wind:+d}")
-        print("Controls: Q to quit, +/- to adjust intensity, ← → to adjust wind")
+        output.append(f"\nIntensity: {self.intensity} | Wind: {self.wind:+d}")
+        output.append("Controls: Q to quit, +/- to adjust intensity, ← → to adjust wind")
+        
+        # Print all at once
+        print('\n'.join(output))
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        enable_alternate_screen()
         hide_cursor()
+        clear_screen()
+        
         fire = FireEffect()
+        fire.draw()
         
         while True:
             # Handle input
@@ -138,7 +149,9 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

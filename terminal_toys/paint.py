@@ -10,7 +10,8 @@ import sys
 from collections import deque
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Colors
@@ -119,30 +120,33 @@ class ASCIIPaint:
         
     def draw_screen(self):
         """Draw the entire screen"""
-        clear_screen()
+        move_cursor(1, 1)
+        
+        output = []
         
         # Draw top border
-        print("┌" + "─" * self.canvas_width + "┐")
+        output.append("┌" + "─" * self.canvas_width + "┐")
         
         # Draw canvas
         for y, row in enumerate(self.canvas):
-            print("│", end="")
+            line = "│"
             for x, cell in enumerate(row):
                 if x == self.cursor_x and y == self.cursor_y:
                     # Draw cursor
-                    print('\033[7m', end='')  # Reverse video
+                    line += '\033[7m'  # Reverse video
                     
                 if isinstance(cell, tuple):
-                    print(f"{cell[0]}{cell[1]}{RESET}", end="")
+                    line += f"{cell[0]}{cell[1]}{RESET}"
                 else:
-                    print(cell, end="")
+                    line += cell
                     
                 if x == self.cursor_x and y == self.cursor_y:
-                    print('\033[27m', end='')  # Reset reverse video
-            print("│")
+                    line += '\033[27m'  # Reset reverse video
+            line += "│"
+            output.append(line)
             
         # Draw bottom border
-        print("└" + "─" * self.canvas_width + "┘")
+        output.append("└" + "─" * self.canvas_width + "┘")
         
         # Draw status bar
         color_preview = f"{COLORS[self.current_color][0]}{COLORS[self.current_color][1]}{RESET}"
@@ -154,25 +158,32 @@ class ASCIIPaint:
             mode = "DRAW (Continuous)"
         else:
             mode = "DRAW"
-        print(f"\nMode: {mode} | Color: {color_preview} | Position: ({self.cursor_x},{self.cursor_y})")
-        print("Controls: ←↑→↓ move, Space draw/toggle continuous, C color, E erase, L line, F fill, S save, Q quit")
+        output.append(f"\nMode: {mode} | Color: {color_preview} | Position: ({self.cursor_x},{self.cursor_y})")
+        output.append("Controls: ←↑→↓ move, Space draw/toggle continuous, C color, E erase, L line, F fill, S save, Q quit")
         
         if self.saved:
-            print("Saved to ascii_art.txt!")
+            output.append("Saved to ascii_art.txt!")
             self.saved = False
+            
+        # Print all at once
+        print('\n'.join(output))
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        enable_alternate_screen()
         hide_cursor()
+        clear_screen()
+        
         paint = ASCIIPaint()
         paint.draw_screen()  # Initial draw
         
         while True:
             # Get input
-            key = kb.get_key()
+            key = kb.get_key(0.05)
             
             if key:
                 if key == 'q' or key == 'Q':
@@ -238,7 +249,9 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

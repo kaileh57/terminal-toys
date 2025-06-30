@@ -11,7 +11,8 @@ import random
 import math
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Ball characters
@@ -124,7 +125,8 @@ class BouncingBalls:
                         
     def draw(self):
         """Draw the animation"""
-        clear_screen()
+        # Move cursor to top
+        move_cursor(1, 1)
         
         # Create screen buffer
         screen = [[' ' for _ in range(self.width)] for _ in range(self.height)]
@@ -148,33 +150,43 @@ class BouncingBalls:
             if 0 <= x < self.width and 0 <= y < self.height:
                 screen[y][x] = (ball.char, ball.color)
                 
-        # Draw border
-        print("┌" + "─" * self.width + "┐")
+        # Build output
+        output = []
+        output.append("┌" + "─" * self.width + "┐")
         
         # Draw screen
         for row in screen:
-            print("│", end="")
+            line = "│"
             for cell in row:
                 if isinstance(cell, tuple):
                     char, color = cell
-                    print(f"{color}{char}{RESET}", end="")
+                    line += f"{color}{char}{RESET}"
                 else:
-                    print(cell, end="")
-            print("│")
+                    line += cell
+            line += "│"
+            output.append(line)
             
-        print("└" + "─" * self.width + "┘")
+        output.append("└" + "─" * self.width + "┘")
         
         # Status
-        print(f"Balls: {len(self.balls)} | Gravity: {self.gravity:.2f} | Trails: {'ON' if self.show_trails else 'OFF'}")
-        print("Controls: Space add ball, C clear, G toggle gravity, T toggle trails, Q quit")
+        output.append(f"Balls: {len(self.balls)} | Gravity: {self.gravity:.2f} | Trails: {'ON' if self.show_trails else 'OFF'}")
+        output.append("Controls: Space add ball, C clear, G toggle gravity, T toggle trails, Q quit")
+        
+        # Print all at once
+        print('\n'.join(output))
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        enable_alternate_screen()
         hide_cursor()
+        clear_screen()
+        
         animation = BouncingBalls()
+        animation.draw()
         
         while True:
             # Handle input
@@ -193,12 +205,14 @@ def main():
                     
             animation.update()
             animation.draw()
-            time.sleep(0.1)  # Slower update to reduce flickering
+            time.sleep(0.05)  # Consistent frame rate
             
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

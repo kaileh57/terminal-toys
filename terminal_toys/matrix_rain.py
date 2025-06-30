@@ -10,7 +10,8 @@ import time
 import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Matrix characters
@@ -85,7 +86,9 @@ class MatrixRain:
                 
     def draw(self):
         """Draw the screen"""
-        clear_screen()
+        move_cursor(1, 1)
+        
+        output = []
         
         for row in self.screen:
             line = ""
@@ -100,17 +103,25 @@ class MatrixRain:
                         line += f"{DIM_GREEN}{char}{RESET}"
                 else:
                     line += " "
-            print(line)
+            output.append(line)
             
-        print(f"\n{DIM_GREEN}Press Q to quit{RESET}")
+        output.append(f"\n{DIM_GREEN}Press Q to quit{RESET}")
+        
+        # Print all at once
+        print('\n'.join(output))
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        enable_alternate_screen()
         hide_cursor()
+        clear_screen()
+        
         matrix = MatrixRain()
+        matrix.draw()
         
         while True:
             # Check for quit
@@ -120,12 +131,14 @@ def main():
                 
             matrix.update()
             matrix.draw()
-            time.sleep(0.1)
+            time.sleep(0.08)  # Slightly slower for smoother animation in WSL
             
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

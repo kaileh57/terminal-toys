@@ -11,7 +11,8 @@ import math
 from datetime import datetime
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Colors
@@ -142,51 +143,59 @@ class ASCIIClock:
         
     def draw(self):
         """Draw the clock"""
-        clear_screen()
+        move_cursor(1, 1)
         
         now = datetime.now()
         hour = now.hour
         minute = now.minute
         second = now.second
         
+        output = []
+        
         # Header
-        print(f"\n{CYAN}╔═══════════════════════════════════════════════════════╗{RESET}")
-        print(f"{CYAN}║{RESET}                    ASCII CLOCK                        {CYAN}║{RESET}")
-        print(f"{CYAN}╚═══════════════════════════════════════════════════════╝{RESET}\n")
+        output.append(f"\n{CYAN}╔═══════════════════════════════════════════════════════╗{RESET}")
+        output.append(f"{CYAN}║{RESET}                    ASCII CLOCK                        {CYAN}║{RESET}")
+        output.append(f"{CYAN}╚═══════════════════════════════════════════════════════╝{RESET}\n")
         
         if self.mode == 'analog' or self.mode == 'both':
             analog_lines = self.draw_analog_clock(hour, minute, second)
             for line in analog_lines:
-                print("        " + line)
-            print()
+                output.append("        " + line)
+            output.append("")
             
         if self.mode == 'digital' or self.mode == 'both':
             if self.mode == 'both':
-                print()
+                output.append("")
             digital_lines = self.draw_digital_clock(hour, minute, second)
             for line in digital_lines:
-                print("    " + line)
-            print()
+                output.append("    " + line)
+            output.append("")
             
         # Date display
         date_str = now.strftime("%A, %B %d, %Y")
-        print(f"\n{MAGENTA}{date_str.center(60)}{RESET}")
+        output.append(f"\n{MAGENTA}{date_str.center(60)}{RESET}")
         
         # Controls
-        print(f"\n{WHITE}Mode: {self.mode.upper()}{RESET}")
-        print("Controls: A analog, D digital, B both, Q quit")
+        output.append(f"\n{WHITE}Mode: {self.mode.upper()}{RESET}")
+        output.append("Controls: A analog, D digital, B both, Q quit")
+        
+        # Print all at once
+        print('\n'.join(output))
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        enable_alternate_screen()
         hide_cursor()
+        clear_screen()
+        
         clock = ASCIIClock()
+        clock.draw()
         
         while True:
-            clock.draw()
-            
             # Handle input with timeout for clock updates
             key = kb.get_key(0.5)
             if key:
@@ -198,11 +207,16 @@ def main():
                     clock.mode = 'digital'
                 elif key == 'b' or key == 'B':
                     clock.mode = 'both'
+            
+            # Always redraw to update time
+            clock.draw()
                     
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

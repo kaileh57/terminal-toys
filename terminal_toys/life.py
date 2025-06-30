@@ -11,7 +11,8 @@ import time
 import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
-    get_terminal_size, KeyboardInput
+    get_terminal_size, KeyboardInput, flush_output,
+    enable_alternate_screen, disable_alternate_screen, move_cursor
 )
 
 # Cell characters
@@ -164,47 +165,57 @@ class GameOfLife:
             
     def draw(self):
         """Draw the grid"""
-        clear_screen()
+        move_cursor(1, 1)
+        
+        output = []
         
         # Draw top border
-        print("┌" + "─" * self.width + "┐")
+        output.append("┌" + "─" * self.width + "┐")
         
         # Draw grid
         for y in range(self.height):
-            print("│", end="")
+            line = "│"
             for x in range(self.width):
                 if x == self.cursor_x and y == self.cursor_y and not self.playing:
                     # Draw cursor
                     if self.grid[y][x]:
-                        print(f"{YELLOW}{ALIVE}{RESET}", end="")
+                        line += f"{YELLOW}{ALIVE}{RESET}"
                     else:
-                        print(f"{YELLOW}·{RESET}", end="")
+                        line += f"{YELLOW}·{RESET}"
                 else:
                     if self.grid[y][x]:
                         # Color based on neighbor count for visual interest
                         neighbors = self.count_neighbors(x, y)
                         if neighbors in [2, 3]:
-                            print(f"{GREEN}{ALIVE}{RESET}", end="")
+                            line += f"{GREEN}{ALIVE}{RESET}"
                         else:
-                            print(f"{DIM_GREEN}{ALIVE}{RESET}", end="")
+                            line += f"{DIM_GREEN}{ALIVE}{RESET}"
                     else:
-                        print(DEAD, end="")
-            print("│")
+                        line += DEAD
+            line += "│"
+            output.append(line)
             
         # Draw bottom border
-        print("└" + "─" * self.width + "┘")
+        output.append("└" + "─" * self.width + "┘")
         
         # Status bar
         status = "PLAYING" if self.playing else "PAUSED"
-        print(f"\nGen: {self.generation} | Pop: {self.population} | Status: {status}")
-        print("←↑→↓ move, Space toggle, P play/pause, C clear, R random, 1-5 patterns, Q quit")
+        output.append(f"\nGen: {self.generation} | Pop: {self.population} | Status: {status}")
+        output.append("←↑→↓ move, Space toggle, P play/pause, C clear, R random, 1-5 patterns, Q quit")
+        
+        # Print all at once
+        print('\n'.join(output))
+        flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
+        enable_alternate_screen()
         hide_cursor()
+        clear_screen()
+        
         game = GameOfLife()
         last_update = time.time()
         last_draw = time.time()
@@ -249,12 +260,14 @@ def main():
                 last_draw = time.time()
                 needs_redraw = False
                 
-            time.sleep(0.05)
+            time.sleep(0.01)
             
     except KeyboardInterrupt:
         pass
     finally:
+        kb.cleanup()
         show_cursor()
+        disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":
