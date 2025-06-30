@@ -52,17 +52,15 @@ def clear_screen():
     try:
         if IS_WINDOWS:
             os.system('cls')
+        elif IS_WSL:
+            # For WSL, use a combination of methods
+            print('\033[H\033[J', end='')
+            sys.stdout.write('\033[2J\033[H')
+            flush_output()
         else:
-            # Use multiple methods for better compatibility
-            if IS_WSL:
-                # WSL-specific clearing sequence
-                print('\033[2J\033[H', end='')
-                print('\033[3J', end='')  # Clear scrollback
-                flush_output()
-            else:
-                # Standard Unix clear
-                print('\033[2J\033[H', end='')
-                flush_output()
+            # Standard Unix clear
+            print('\033[2J\033[H', end='')
+            flush_output()
     except:
         # Fallback to simple newlines
         print('\n' * 100)
@@ -70,18 +68,24 @@ def clear_screen():
 
 def move_cursor(x: int, y: int):
     """Move cursor to position (1-indexed)"""
-    print(f'\033[{y};{x}H', end='')
-    flush_output()
+    # For WSL, we'll avoid using cursor positioning
+    if IS_WSL:
+        clear_screen()
+    else:
+        print(f'\033[{y};{x}H', end='')
+        flush_output()
 
 def save_cursor_position():
     """Save current cursor position"""
-    print('\033[s', end='')
-    flush_output()
+    if not IS_WSL:
+        print('\033[s', end='')
+        flush_output()
 
 def restore_cursor_position():
     """Restore saved cursor position"""
-    print('\033[u', end='')
-    flush_output()
+    if not IS_WSL:
+        print('\033[u', end='')
+        flush_output()
 
 def enable_ansi_colors():
     """Enable ANSI color support"""
@@ -106,11 +110,16 @@ def enable_ansi_colors():
         # Enable UTF-8 support
         if 'LANG' not in os.environ:
             os.environ['LANG'] = 'en_US.UTF-8'
+        
+        # For WSL specifically, set additional environment variables
+        if IS_WSL:
+            os.environ['COLUMNS'] = str(shutil.get_terminal_size().columns)
+            os.environ['LINES'] = str(shutil.get_terminal_size().lines)
 
 def hide_cursor():
     """Hide the terminal cursor"""
     try:
-        print('\033[?25l', end='')
+        sys.stdout.write('\033[?25l')
         flush_output()
     except:
         pass
@@ -118,7 +127,7 @@ def hide_cursor():
 def show_cursor():
     """Show the terminal cursor"""
     try:
-        print('\033[?25h', end='')
+        sys.stdout.write('\033[?25h')
         flush_output()
     except:
         pass
@@ -128,7 +137,17 @@ def get_terminal_size():
     try:
         # Try multiple methods for better WSL compatibility
         if IS_WSL:
-            # Try stty first for WSL
+            # For WSL, prefer environment variables if set
+            if 'COLUMNS' in os.environ and 'LINES' in os.environ:
+                try:
+                    cols = int(os.environ['COLUMNS'])
+                    lines = int(os.environ['LINES'])
+                    if cols > 0 and lines > 0:
+                        return cols, lines
+                except:
+                    pass
+            
+            # Try stty for WSL
             try:
                 import subprocess
                 result = subprocess.run(['stty', 'size'], 
@@ -144,21 +163,23 @@ def get_terminal_size():
         # Standard method
         size = shutil.get_terminal_size()
         # Ensure reasonable size
-        cols = max(40, min(size.columns, 200))
-        lines = max(20, min(size.lines, 60))
+        cols = max(40, min(size.columns, 120))
+        lines = max(20, min(size.lines, 40))
         return cols, lines
     except:
         return 80, 24
 
 def enable_alternate_screen():
     """Switch to alternate screen buffer (for games/animations)"""
-    if not IS_WINDOWS:
+    # Disable alternate screen for WSL as it can cause issues
+    if not IS_WINDOWS and not IS_WSL:
         print('\033[?1049h', end='')
         flush_output()
 
 def disable_alternate_screen():
     """Switch back to main screen buffer"""
-    if not IS_WINDOWS:
+    # Disable alternate screen for WSL as it can cause issues
+    if not IS_WINDOWS and not IS_WSL:
         print('\033[?1049l', end='')
         flush_output()
 
@@ -180,12 +201,8 @@ class KeyboardInput:
                 
                 if IS_WSL:
                     # WSL-specific terminal settings
-                    # Disable canonical mode and echo
-                    new_settings[3] = new_settings[3] & ~termios.ICANON & ~termios.ECHO
-                    # Set minimal characters for read
-                    new_settings[6][termios.VMIN] = 0
-                    new_settings[6][termios.VTIME] = 0
-                    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, new_settings)
+                    # Use cbreak mode for WSL to avoid issues
+                    tty.setcbreak(sys.stdin.fileno())
                 else:
                     # Standard Unix raw mode
                     tty.setraw(sys.stdin.fileno())
@@ -193,7 +210,7 @@ class KeyboardInput:
                 self.input_mode = 'raw'
                 
                 # Set non-blocking mode for better responsiveness
-                if fcntl:
+                if fcntl and not IS_WSL:  # Avoid non-blocking in WSL
                     fl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
                     fcntl.fcntl(sys.stdin, fcntl.F_SETFL, fl | os.O_NONBLOCK)
             except:
@@ -211,9 +228,12 @@ class KeyboardInput:
         if self.old_settings and termios:
             try:
                 # Restore blocking mode
-                if fcntl and hasattr(sys.stdin, 'fileno'):
-                    fl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
-                    fcntl.fcntl(sys.stdin, fcntl.F_SETFL, fl & ~os.O_NONBLOCK)
+                if fcntl and hasattr(sys.stdin, 'fileno') and not IS_WSL:
+                    try:
+                        fl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
+                        fcntl.fcntl(sys.stdin, fcntl.F_SETFL, fl & ~os.O_NONBLOCK)
+                    except:
+                        pass
                 
                 # Restore terminal settings
                 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
@@ -268,56 +288,90 @@ class KeyboardInput:
             return self._get_key_simple(timeout)
             
         try:
-            # For WSL, add a small delay to allow buffering
-            if IS_WSL and timeout > 0:
-                time.sleep(0.001)
-            
-            # Check if input is available
-            rlist, _, _ = select.select([sys.stdin], [], [], timeout)
-            if rlist:
-                # Read available characters
-                chars = ''
-                while True:
-                    try:
-                        char = sys.stdin.read(1)
-                        if not char:
-                            break
-                        chars += char
-                        # Check if more characters are immediately available
-                        if not select.select([sys.stdin], [], [], 0)[0]:
-                            break
-                    except (OSError, IOError):
-                        break
-                
-                if not chars:
+            # For WSL, use blocking read with timeout
+            if IS_WSL:
+                # Set a small timeout for select in WSL
+                rlist, _, _ = select.select([sys.stdin], [], [], timeout if timeout > 0 else 0.1)
+                if not rlist:
                     return None
                 
-                # Parse the input
-                if len(chars) == 1:
-                    # Single character
-                    if chars == '\x03':  # Ctrl+C
-                        raise KeyboardInterrupt
-                    elif chars == '\r' or chars == '\n':  # Enter
-                        return '\n'
-                    else:
-                        return chars
-                else:
-                    # Multi-character sequence (likely escape sequence)
-                    if chars.startswith('\x1b'):
-                        # Arrow keys and other escape sequences
-                        if chars == '\x1b[A' or chars == '\x1bOA':
-                            return 'UP'
-                        elif chars == '\x1b[B' or chars == '\x1bOB':
-                            return 'DOWN'
-                        elif chars == '\x1b[C' or chars == '\x1bOC':
-                            return 'RIGHT'
-                        elif chars == '\x1b[D' or chars == '\x1bOD':
-                            return 'LEFT'
-                        elif len(chars) == 1:
-                            return '\x1b'  # Just ESC
+                # Read one character at a time for WSL
+                char = sys.stdin.read(1)
+                if not char:
+                    return None
                     
-                    # Return first character if we can't parse the sequence
-                    return chars[0] if chars else None
+                # Check for escape sequences
+                if char == '\x1b':
+                    # Check if more characters are available
+                    rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
+                    if rlist:
+                        char2 = sys.stdin.read(1)
+                        if char2 == '[':
+                            rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
+                            if rlist:
+                                char3 = sys.stdin.read(1)
+                                if char3 == 'A':
+                                    return 'UP'
+                                elif char3 == 'B':
+                                    return 'DOWN'
+                                elif char3 == 'C':
+                                    return 'RIGHT'
+                                elif char3 == 'D':
+                                    return 'LEFT'
+                    return char  # Just ESC
+                elif char == '\x03':  # Ctrl+C
+                    raise KeyboardInterrupt
+                elif char == '\r' or char == '\n':  # Enter
+                    return '\n'
+                else:
+                    return char
+            else:
+                # Standard Unix handling
+                rlist, _, _ = select.select([sys.stdin], [], [], timeout)
+                if rlist:
+                    # Read available characters
+                    chars = ''
+                    while True:
+                        try:
+                            char = sys.stdin.read(1)
+                            if not char:
+                                break
+                            chars += char
+                            # Check if more characters are immediately available
+                            if not select.select([sys.stdin], [], [], 0)[0]:
+                                break
+                        except (OSError, IOError):
+                            break
+                    
+                    if not chars:
+                        return None
+                    
+                    # Parse the input
+                    if len(chars) == 1:
+                        # Single character
+                        if chars == '\x03':  # Ctrl+C
+                            raise KeyboardInterrupt
+                        elif chars == '\r' or chars == '\n':  # Enter
+                            return '\n'
+                        else:
+                            return chars
+                    else:
+                        # Multi-character sequence (likely escape sequence)
+                        if chars.startswith('\x1b'):
+                            # Arrow keys and other escape sequences
+                            if chars == '\x1b[A' or chars == '\x1bOA':
+                                return 'UP'
+                            elif chars == '\x1b[B' or chars == '\x1bOB':
+                                return 'DOWN'
+                            elif chars == '\x1b[C' or chars == '\x1bOC':
+                                return 'RIGHT'
+                            elif chars == '\x1b[D' or chars == '\x1bOD':
+                                return 'LEFT'
+                            elif len(chars) == 1:
+                                return '\x1b'  # Just ESC
+                        
+                        # Return first character if we can't parse the sequence
+                        return chars[0] if chars else None
         except:
             return None
         
@@ -360,6 +414,21 @@ class KeyboardInput:
         
         return None
 
+# WSL-specific rendering helper
+def render_frame_wsl(lines):
+    """Render a complete frame for WSL with proper clearing"""
+    if IS_WSL:
+        # Clear screen and home cursor
+        sys.stdout.write('\033[H\033[J')
+        # Print all lines at once
+        sys.stdout.write('\n'.join(lines))
+        sys.stdout.write('\n')
+        flush_output()
+    else:
+        # For non-WSL, just print normally
+        print('\n'.join(lines))
+        flush_output()
+
 # Test function
 def test_terminal():
     """Test terminal functionality"""
@@ -384,21 +453,12 @@ def test_terminal():
     for color_code, color_name in colors:
         print(f"{color_code}{color_name}\033[0m", end=' ')
     print()
-    flush_output()
     
     # Test screen clearing
     print("\nPress Enter to test screen clearing...")
     input()
     clear_screen()
     print("Screen cleared! You should see this at the top.")
-    
-    # Test cursor movement
-    print("\nTesting cursor movement...")
-    save_cursor_position()
-    move_cursor(10, 5)
-    print("This text is at position (10, 5)")
-    restore_cursor_position()
-    print("Back to original position")
     
     # Test keyboard input
     print("\nKeyboard test - Press keys (q to quit):")

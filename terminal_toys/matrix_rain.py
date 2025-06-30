@@ -11,7 +11,8 @@ import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
     get_terminal_size, KeyboardInput, flush_output,
-    enable_alternate_screen, disable_alternate_screen, move_cursor
+    enable_alternate_screen, disable_alternate_screen, move_cursor,
+    IS_WSL, render_frame_wsl
 )
 
 # Matrix characters
@@ -32,7 +33,7 @@ class MatrixRain:
         self.height = height - 2  # Leave space for status
         self.drops = []
         self.screen = [[' ' for _ in range(self.width)] for _ in range(self.height)]
-        self.chars = CHARS + KATAKANA
+        self.chars = CHARS + (KATAKANA if not IS_WSL else "")  # Skip Katakana in WSL
         
         # Initialize drops
         for x in range(self.width):
@@ -86,8 +87,6 @@ class MatrixRain:
                 
     def draw(self):
         """Draw the screen"""
-        move_cursor(1, 1)
-        
         output = []
         
         for row in self.screen:
@@ -107,16 +106,21 @@ class MatrixRain:
             
         output.append(f"\n{DIM_GREEN}Press Q to quit{RESET}")
         
-        # Print all at once
-        print('\n'.join(output))
-        flush_output()
+        # Render based on platform
+        if IS_WSL:
+            render_frame_wsl(output)
+        else:
+            move_cursor(1, 1)
+            print('\n'.join(output))
+            flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
-        enable_alternate_screen()
+        if not IS_WSL:
+            enable_alternate_screen()
         hide_cursor()
         clear_screen()
         
@@ -138,7 +142,8 @@ def main():
     finally:
         kb.cleanup()
         show_cursor()
-        disable_alternate_screen()
+        if not IS_WSL:
+            disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

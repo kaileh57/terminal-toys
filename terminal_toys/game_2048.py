@@ -11,7 +11,8 @@ import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
     get_terminal_size, KeyboardInput, flush_output,
-    enable_alternate_screen, disable_alternate_screen, move_cursor
+    enable_alternate_screen, disable_alternate_screen, IS_WSL,
+    render_frame_wsl
 )
 
 # Tile colors
@@ -130,59 +131,102 @@ class Game2048:
         
     def draw(self):
         """Draw the game board"""
-        move_cursor(1, 1)
-        
         output = []
         
-        output.append(f"╔{'═' * 31}╗")
-        output.append(f"║{'2048 GAME':^31}║")
-        output.append(f"╠{'═' * 31}╣")
-        score_line = f"Score: {self.score:<10} Moves: {self.moves:<3}"
-        output.append(f"║ {score_line:^29} ║")
-        output.append(f"╚{'═' * 31}╝")
+        # Add some spacing at the top
+        output.append("")
         output.append("")
         
-        # Draw board
-        output.append("┌" + ("─" * 7 + "┬") * (self.size - 1) + "─" * 7 + "┐")
+        # Title box - use simple characters for WSL
+        if IS_WSL:
+            output.append("+" + "=" * 31 + "+")
+            output.append("|" + f"{'2048 GAME':^31}" + "|")
+            output.append("+" + "=" * 31 + "+")
+            score_line = f"Score: {self.score:<10} Moves: {self.moves:<3}"
+            output.append(f"| {score_line:^29} |")
+            output.append("+" + "=" * 31 + "+")
+        else:
+            output.append(f"╔{'═' * 31}╗")
+            output.append(f"║{'2048 GAME':^31}║")
+            output.append(f"╠{'═' * 31}╣")
+            score_line = f"Score: {self.score:<10} Moves: {self.moves:<3}"
+            output.append(f"║ {score_line:^29} ║")
+            output.append(f"╚{'═' * 31}╝")
+        output.append("")
         
-        for i, row in enumerate(self.board):
-            line = "│"
-            for j, val in enumerate(row):
-                if val == 0:
-                    line += f"       "
-                else:
-                    color = TILE_COLORS.get(val, '\033[97m')
-                    line += f"{color}{val:^7}{RESET}"
-                    
-                if j < self.size - 1:
-                    line += "│"
-            line += "│"
-            output.append(line)
+        # Draw board - use simple characters for WSL
+        if IS_WSL:
+            # Top border
+            output.append("+" + ("-" * 7 + "+") * self.size)
             
-            if i < self.size - 1:
-                output.append("├" + ("─" * 7 + "┼") * (self.size - 1) + "─" * 7 + "┤")
+            for i, row in enumerate(self.board):
+                line = "|"
+                for j, val in enumerate(row):
+                    if val == 0:
+                        line += "       "
+                    else:
+                        color = TILE_COLORS.get(val, '\033[97m')
+                        line += f"{color}{val:^7}{RESET}"
+                    line += "|"
+                output.append(line)
                 
-        output.append("└" + ("─" * 7 + "┴") * (self.size - 1) + "─" * 7 + "┘")
+                # Row separator
+                if i < self.size - 1:
+                    output.append("+" + ("-" * 7 + "+") * self.size)
+                    
+            # Bottom border
+            output.append("+" + ("-" * 7 + "+") * self.size)
+        else:
+            # Unicode box drawing for non-WSL
+            output.append("┌" + ("─" * 7 + "┬") * (self.size - 1) + "─" * 7 + "┐")
+            
+            for i, row in enumerate(self.board):
+                line = "│"
+                for j, val in enumerate(row):
+                    if val == 0:
+                        line += "       "
+                    else:
+                        color = TILE_COLORS.get(val, '\033[97m')
+                        line += f"{color}{val:^7}{RESET}"
+                        
+                    if j < self.size - 1:
+                        line += "│"
+                line += "│"
+                output.append(line)
+                
+                if i < self.size - 1:
+                    output.append("├" + ("─" * 7 + "┼") * (self.size - 1) + "─" * 7 + "┤")
+                    
+            output.append("└" + ("─" * 7 + "┴") * (self.size - 1) + "─" * 7 + "┘")
         
-        output.append("\nControls: ← ↑ → ↓ or WASD to move, Q to quit")
+        output.append("")
+        output.append("Controls: <- ^ -> v or WASD to move, Q to quit")
         
         if self.won:
-            output.append(f"\n{TILE_COLORS[2048]}*** CONGRATULATIONS! YOU WON! ***{RESET}")
+            output.append("")
+            output.append(f"{TILE_COLORS[2048]}*** CONGRATULATIONS! YOU WON! ***{RESET}")
             output.append("Press C to continue playing or Q to quit")
         elif self.game_over:
-            output.append(f"\n\033[91m*** GAME OVER ***{RESET}")
+            output.append("")
+            output.append(f"\033[91m*** GAME OVER ***{RESET}")
             output.append(f"Final Score: {self.score}")
             
-        # Print all at once
-        print('\n'.join(output))
-        flush_output()
+        # Use WSL-specific rendering if needed
+        if IS_WSL:
+            render_frame_wsl(output)
+        else:
+            # For non-WSL, clear and print
+            clear_screen()
+            print('\n'.join(output))
+            flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
-        enable_alternate_screen()
+        if not IS_WSL:
+            enable_alternate_screen()
         hide_cursor()
         clear_screen()
         
@@ -214,7 +258,8 @@ def main():
     finally:
         kb.cleanup()
         show_cursor()
-        disable_alternate_screen()
+        if not IS_WSL:
+            disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

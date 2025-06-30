@@ -12,11 +12,12 @@ import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
     get_terminal_size, KeyboardInput, flush_output,
-    enable_alternate_screen, disable_alternate_screen, move_cursor
+    enable_alternate_screen, disable_alternate_screen, move_cursor,
+    IS_WSL, render_frame_wsl
 )
 
 # Cell characters
-ALIVE = '█'
+ALIVE = '#' if IS_WSL else '█'
 DEAD = ' '
 
 # Colors
@@ -165,23 +166,24 @@ class GameOfLife:
             
     def draw(self):
         """Draw the grid"""
-        move_cursor(1, 1)
-        
         output = []
         
-        # Draw top border
-        output.append("┌" + "─" * self.width + "┐")
+        # Draw top border - use simple characters for WSL
+        if IS_WSL:
+            output.append("+" + "-" * self.width + "+")
+        else:
+            output.append("┌" + "─" * self.width + "┐")
         
         # Draw grid
         for y in range(self.height):
-            line = "│"
+            line = "|" if IS_WSL else "│"
             for x in range(self.width):
                 if x == self.cursor_x and y == self.cursor_y and not self.playing:
                     # Draw cursor
                     if self.grid[y][x]:
                         line += f"{YELLOW}{ALIVE}{RESET}"
                     else:
-                        line += f"{YELLOW}·{RESET}"
+                        line += f"{YELLOW}.{RESET}" if IS_WSL else f"{YELLOW}·{RESET}"
                 else:
                     if self.grid[y][x]:
                         # Color based on neighbor count for visual interest
@@ -192,27 +194,35 @@ class GameOfLife:
                             line += f"{DIM_GREEN}{ALIVE}{RESET}"
                     else:
                         line += DEAD
-            line += "│"
+            line += "|" if IS_WSL else "│"
             output.append(line)
             
         # Draw bottom border
-        output.append("└" + "─" * self.width + "┘")
+        if IS_WSL:
+            output.append("+" + "-" * self.width + "+")
+        else:
+            output.append("└" + "─" * self.width + "┘")
         
         # Status bar
         status = "PLAYING" if self.playing else "PAUSED"
         output.append(f"\nGen: {self.generation} | Pop: {self.population} | Status: {status}")
-        output.append("←↑→↓ move, Space toggle, P play/pause, C clear, R random, 1-5 patterns, Q quit")
+        output.append("<-^->v move, Space toggle, P play/pause, C clear, R random, 1-5 patterns, Q quit")
         
-        # Print all at once
-        print('\n'.join(output))
-        flush_output()
+        # Render based on platform
+        if IS_WSL:
+            render_frame_wsl(output)
+        else:
+            move_cursor(1, 1)
+            print('\n'.join(output))
+            flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
-        enable_alternate_screen()
+        if not IS_WSL:
+            enable_alternate_screen()
         hide_cursor()
         clear_screen()
         
@@ -267,7 +277,8 @@ def main():
     finally:
         kb.cleanup()
         show_cursor()
-        disable_alternate_screen()
+        if not IS_WSL:
+            disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

@@ -11,7 +11,8 @@ import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
     get_terminal_size, KeyboardInput, flush_output,
-    enable_alternate_screen, disable_alternate_screen, move_cursor
+    enable_alternate_screen, disable_alternate_screen, move_cursor,
+    IS_WSL, render_frame_wsl
 )
 
 # Fire characters from cold to hot
@@ -90,8 +91,6 @@ class FireEffect:
                     
     def draw(self):
         """Draw the fire effect"""
-        move_cursor(1, 1)
-        
         output = []
         
         # Draw fire
@@ -109,18 +108,23 @@ class FireEffect:
             
         # Status line
         output.append(f"\nIntensity: {self.intensity} | Wind: {self.wind:+d}")
-        output.append("Controls: Q to quit, +/- to adjust intensity, ← → to adjust wind")
+        output.append("Controls: Q to quit, +/- to adjust intensity, <- -> to adjust wind")
         
-        # Print all at once
-        print('\n'.join(output))
-        flush_output()
+        # Render based on platform
+        if IS_WSL:
+            render_frame_wsl(output)
+        else:
+            move_cursor(1, 1)
+            print('\n'.join(output))
+            flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
-        enable_alternate_screen()
+        if not IS_WSL:
+            enable_alternate_screen()
         hide_cursor()
         clear_screen()
         
@@ -151,7 +155,8 @@ def main():
     finally:
         kb.cleanup()
         show_cursor()
-        disable_alternate_screen()
+        if not IS_WSL:
+            disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

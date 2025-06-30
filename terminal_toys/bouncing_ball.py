@@ -12,11 +12,12 @@ import math
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
     get_terminal_size, KeyboardInput, flush_output,
-    enable_alternate_screen, disable_alternate_screen, move_cursor
+    enable_alternate_screen, disable_alternate_screen, move_cursor,
+    IS_WSL, render_frame_wsl
 )
 
 # Ball characters
-BALL_CHARS = ['●', '○', '◉', '◎', '◯', '⬤']
+BALL_CHARS = ['●', '○', '◉', '◎', '◯', '⬤'] if not IS_WSL else ['O', 'o', '@', '0', 'Q', '*']
 
 # Colors
 COLORS = [
@@ -125,9 +126,6 @@ class BouncingBalls:
                         
     def draw(self):
         """Draw the animation"""
-        # Move cursor to top
-        move_cursor(1, 1)
-        
         # Create screen buffer
         screen = [[' ' for _ in range(self.width)] for _ in range(self.height)]
         
@@ -141,9 +139,9 @@ class BouncingBalls:
                         if opacity < 0.3:
                             screen[ty][tx] = '.'
                         elif opacity < 0.6:
-                            screen[ty][tx] = '·'
+                            screen[ty][tx] = ':'
                         else:
-                            screen[ty][tx] = '•'
+                            screen[ty][tx] = '*'
                             
             # Draw ball
             x, y = int(ball.x), int(ball.y)
@@ -152,36 +150,50 @@ class BouncingBalls:
                 
         # Build output
         output = []
-        output.append("┌" + "─" * self.width + "┐")
+        
+        # Draw border - use simple characters for WSL
+        if IS_WSL:
+            output.append("+" + "-" * self.width + "+")
+        else:
+            output.append("┌" + "─" * self.width + "┐")
         
         # Draw screen
         for row in screen:
-            line = "│"
+            line = "|" if IS_WSL else "│"
             for cell in row:
                 if isinstance(cell, tuple):
                     char, color = cell
                     line += f"{color}{char}{RESET}"
                 else:
                     line += cell
-            line += "│"
+            line += "|" if IS_WSL else "│"
             output.append(line)
             
-        output.append("└" + "─" * self.width + "┘")
+        # Bottom border
+        if IS_WSL:
+            output.append("+" + "-" * self.width + "+")
+        else:
+            output.append("└" + "─" * self.width + "┘")
         
         # Status
         output.append(f"Balls: {len(self.balls)} | Gravity: {self.gravity:.2f} | Trails: {'ON' if self.show_trails else 'OFF'}")
         output.append("Controls: Space add ball, C clear, G toggle gravity, T toggle trails, Q quit")
         
-        # Print all at once
-        print('\n'.join(output))
-        flush_output()
+        # Render based on platform
+        if IS_WSL:
+            render_frame_wsl(output)
+        else:
+            move_cursor(1, 1)
+            print('\n'.join(output))
+            flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
-        enable_alternate_screen()
+        if not IS_WSL:
+            enable_alternate_screen()
         hide_cursor()
         clear_screen()
         
@@ -212,7 +224,8 @@ def main():
     finally:
         kb.cleanup()
         show_cursor()
-        disable_alternate_screen()
+        if not IS_WSL:
+            disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

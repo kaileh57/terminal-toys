@@ -11,7 +11,8 @@ import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
     get_terminal_size, KeyboardInput, flush_output,
-    enable_alternate_screen, disable_alternate_screen, move_cursor
+    enable_alternate_screen, disable_alternate_screen, move_cursor,
+    IS_WSL, render_frame_wsl
 )
 
 # Colors
@@ -75,64 +76,93 @@ class Snake:
             
     def draw(self):
         """Draw the game"""
-        # Move cursor to top-left for consistent rendering
-        move_cursor(1, 1)
-        
         # Create game board
         board = [[' ' for _ in range(self.width)] for _ in range(self.height)]
         
-        # Draw walls
-        for x in range(self.width):
-            board[0][x] = '═'
-            board[self.height-1][x] = '═'
-        for y in range(self.height):
-            board[y][0] = '║'
-            board[y][self.width-1] = '║'
-            
-        # Corners
-        board[0][0] = '╔'
-        board[0][self.width-1] = '╗'
-        board[self.height-1][0] = '╚'
-        board[self.height-1][self.width-1] = '╝'
+        # Draw walls - use simple characters for WSL
+        if IS_WSL:
+            # Simple ASCII borders
+            for x in range(self.width):
+                board[0][x] = '='
+                board[self.height-1][x] = '='
+            for y in range(self.height):
+                board[y][0] = '|'
+                board[y][self.width-1] = '|'
+            # Corners
+            board[0][0] = '+'
+            board[0][self.width-1] = '+'
+            board[self.height-1][0] = '+'
+            board[self.height-1][self.width-1] = '+'
+        else:
+            # Unicode box drawing
+            for x in range(self.width):
+                board[0][x] = '═'
+                board[self.height-1][x] = '═'
+            for y in range(self.height):
+                board[y][0] = '║'
+                board[y][self.width-1] = '║'
+            # Corners
+            board[0][0] = '╔'
+            board[0][self.width-1] = '╗'
+            board[self.height-1][0] = '╚'
+            board[self.height-1][self.width-1] = '╝'
         
         # Draw snake
         for i, (x, y) in enumerate(self.snake):
             if i == 0:
-                board[y][x] = '●'  # Head
+                board[y][x] = 'O' if IS_WSL else '●'  # Head
             else:
-                board[y][x] = '○'  # Body
+                board[y][x] = 'o' if IS_WSL else '○'  # Body
                 
         # Draw food
-        board[self.food[1]][self.food[0]] = '♦'
+        board[self.food[1]][self.food[0]] = '*' if IS_WSL else '♦'
         
-        # Print board with colors
+        # Build output with colors
         output = []
         for y, row in enumerate(board):
             line = ""
             for x, cell in enumerate(row):
-                if cell in '═║╔╗╚╝':
-                    line += f"{BLUE}{cell}{RESET}"
-                elif cell == '●':
-                    line += f"{GREEN}{cell}{RESET}"
-                elif cell == '○':
-                    line += f"{GREEN}{cell}{RESET}"
-                elif cell == '♦':
-                    line += f"{RED}{cell}{RESET}"
+                if IS_WSL:
+                    # Simple ASCII characters
+                    if cell in '=|+':
+                        line += f"{BLUE}{cell}{RESET}"
+                    elif cell == 'O':  # Snake head
+                        line += f"{GREEN}{cell}{RESET}"
+                    elif cell == 'o':  # Snake body
+                        line += f"{GREEN}{cell}{RESET}"
+                    elif cell == '*':  # Food
+                        line += f"{RED}{cell}{RESET}"
+                    else:
+                        line += cell
                 else:
-                    line += cell
+                    # Unicode characters
+                    if cell in '═║╔╗╚╝':
+                        line += f"{BLUE}{cell}{RESET}"
+                    elif cell == '●':
+                        line += f"{GREEN}{cell}{RESET}"
+                    elif cell == '○':
+                        line += f"{GREEN}{cell}{RESET}"
+                    elif cell == '♦':
+                        line += f"{RED}{cell}{RESET}"
+                    else:
+                        line += cell
             output.append(line)
         
-        # Print all at once for smoother rendering
-        print('\n'.join(output))
-        print(f"\nScore: {self.score}")
-        print("Controls: Arrow keys or WASD to move, Q to quit")
+        output.append(f"\nScore: {self.score}")
+        output.append("Controls: Arrow keys or WASD to move, Q to quit")
         
         if self.game_over:
-            print(f"\n{RED}*** GAME OVER ***{RESET}")
-            print(f"Final Score: {self.score}")
+            output.append(f"\n{RED}*** GAME OVER ***{RESET}")
+            output.append(f"Final Score: {self.score}")
         
-        # Force output to display immediately
-        flush_output()
+        # Render based on platform
+        if IS_WSL:
+            render_frame_wsl(output)
+        else:
+            # Move cursor to top-left for consistent rendering
+            move_cursor(1, 1)
+            print('\n'.join(output))
+            flush_output()
 
 def main():
     enable_ansi_colors()
@@ -140,7 +170,8 @@ def main():
     
     try:
         # Use alternate screen buffer for cleaner display
-        enable_alternate_screen()
+        if not IS_WSL:
+            enable_alternate_screen()
         hide_cursor()
         clear_screen()
         
@@ -191,7 +222,8 @@ def main():
     finally:
         kb.cleanup()
         show_cursor()
-        disable_alternate_screen()
+        if not IS_WSL:
+            disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

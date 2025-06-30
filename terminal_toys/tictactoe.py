@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Tic-Tac-Toe - Cross-platform classic game with AI opponent
-Controls: Arrow keys to move, Space to place, 1 for Easy AI, 2 for Hard AI, Q to quit
+Press 1-9 to place your mark, Q to quit
 Works on Windows, macOS, and Linux
 """
 
@@ -10,7 +10,8 @@ import random
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
     get_terminal_size, KeyboardInput, flush_output,
-    enable_alternate_screen, disable_alternate_screen, move_cursor
+    enable_alternate_screen, disable_alternate_screen, move_cursor,
+    IS_WSL, render_frame_wsl
 )
 
 # Colors
@@ -18,193 +19,193 @@ BLUE = '\033[94m'
 RED = '\033[91m'
 GREEN = '\033[92m'
 YELLOW = '\033[93m'
+CYAN = '\033[96m'
 RESET = '\033[0m'
 
 class TicTacToe:
     def __init__(self):
-        self.board = [[' ' for _ in range(3)] for _ in range(3)]
-        self.cursor_x = 1
-        self.cursor_y = 1
-        self.current_player = 'X'
+        self.board = [' ' for _ in range(9)]
+        self.current_player = 'X'  # Human player
         self.game_over = False
         self.winner = None
-        self.ai_mode = None  # None, 'easy', 'hard'
-        self.player_symbol = 'X'
-        self.ai_symbol = 'O'
+        self.winning_line = None
         
-    def reset(self):
-        """Reset the game"""
-        self.board = [[' ' for _ in range(3)] for _ in range(3)]
-        self.current_player = 'X'
-        self.game_over = False
-        self.winner = None
-        
-    def make_move(self, x, y, player):
-        """Make a move at position (x, y)"""
-        if self.board[y][x] == ' ' and not self.game_over:
-            self.board[y][x] = player
+    def make_move(self, position, player):
+        """Make a move on the board"""
+        if self.board[position] == ' ' and not self.game_over:
+            self.board[position] = player
             return True
         return False
         
     def check_winner(self):
         """Check if there's a winner"""
-        # Check rows
-        for row in self.board:
-            if row[0] == row[1] == row[2] != ' ':
-                return row[0]
+        # All possible winning combinations
+        lines = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Columns
+            [0, 4, 8], [2, 4, 6]              # Diagonals
+        ]
+        
+        for line in lines:
+            if (self.board[line[0]] != ' ' and 
+                self.board[line[0]] == self.board[line[1]] == self.board[line[2]]):
+                self.winner = self.board[line[0]]
+                self.winning_line = line
+                self.game_over = True
+                return True
                 
-        # Check columns
-        for col in range(3):
-            if self.board[0][col] == self.board[1][col] == self.board[2][col] != ' ':
-                return self.board[0][col]
-                
-        # Check diagonals
-        if self.board[0][0] == self.board[1][1] == self.board[2][2] != ' ':
-            return self.board[0][0]
-        if self.board[0][2] == self.board[1][1] == self.board[2][0] != ' ':
-            return self.board[0][2]
-            
         # Check for tie
-        if all(self.board[y][x] != ' ' for y in range(3) for x in range(3)):
-            return 'tie'
+        if ' ' not in self.board:
+            self.game_over = True
+            return True
             
-        return None
+        return False
         
-    def get_available_moves(self):
-        """Get list of available moves"""
-        moves = []
-        for y in range(3):
-            for x in range(3):
-                if self.board[y][x] == ' ':
-                    moves.append((x, y))
-        return moves
+    def get_ai_move(self):
+        """Get AI move using minimax algorithm"""
+        if self.game_over:
+            return None
+            
+        # First move: take center or corner
+        if self.board.count(' ') == 9:
+            return random.choice([0, 2, 4, 6, 8])
+            
+        best_score = -float('inf')
+        best_move = None
         
-    def minimax(self, depth, is_maximizing):
+        for i in range(9):
+            if self.board[i] == ' ':
+                self.board[i] = 'O'
+                score = self.minimax(self.board, 0, False)
+                self.board[i] = ' '
+                
+                if score > best_score:
+                    best_score = score
+                    best_move = i
+                    
+        return best_move
+        
+    def minimax(self, board, depth, is_maximizing):
         """Minimax algorithm for AI"""
-        winner = self.check_winner()
-        
-        if winner == self.ai_symbol:
-            return 1
-        elif winner == self.player_symbol:
-            return -1
-        elif winner == 'tie':
+        # Check terminal states
+        winner = self.check_board_winner(board)
+        if winner == 'O':
+            return 10 - depth
+        elif winner == 'X':
+            return depth - 10
+        elif ' ' not in board:
             return 0
             
         if is_maximizing:
-            max_eval = float('-inf')
-            for x, y in self.get_available_moves():
-                self.board[y][x] = self.ai_symbol
-                eval_score = self.minimax(depth + 1, False)
-                self.board[y][x] = ' '
-                max_eval = max(max_eval, eval_score)
-            return max_eval
+            best_score = -float('inf')
+            for i in range(9):
+                if board[i] == ' ':
+                    board[i] = 'O'
+                    score = self.minimax(board, depth + 1, False)
+                    board[i] = ' '
+                    best_score = max(score, best_score)
+            return best_score
         else:
-            min_eval = float('inf')
-            for x, y in self.get_available_moves():
-                self.board[y][x] = self.player_symbol
-                eval_score = self.minimax(depth + 1, True)
-                self.board[y][x] = ' '
-                min_eval = min(min_eval, eval_score)
-            return min_eval
+            best_score = float('inf')
+            for i in range(9):
+                if board[i] == ' ':
+                    board[i] = 'X'
+                    score = self.minimax(board, depth + 1, True)
+                    board[i] = ' '
+                    best_score = min(score, best_score)
+            return best_score
             
-    def ai_move_easy(self):
-        """Easy AI - makes random moves"""
-        moves = self.get_available_moves()
-        if moves:
-            x, y = random.choice(moves)
-            self.make_move(x, y, self.ai_symbol)
-            
-    def ai_move_hard(self):
-        """Hard AI - uses minimax algorithm"""
-        best_score = float('-inf')
-        best_move = None
+    def check_board_winner(self, board):
+        """Check winner for a given board state"""
+        lines = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ]
         
-        for x, y in self.get_available_moves():
-            self.board[y][x] = self.ai_symbol
-            score = self.minimax(0, False)
-            self.board[y][x] = ' '
-            
-            if score > best_score:
-                best_score = score
-                best_move = (x, y)
-                
-        if best_move:
-            x, y = best_move
-            self.make_move(x, y, self.ai_symbol)
-            
+        for line in lines:
+            if (board[line[0]] != ' ' and 
+                board[line[0]] == board[line[1]] == board[line[2]]):
+                return board[line[0]]
+        return None
+        
     def draw(self):
         """Draw the game board"""
-        move_cursor(1, 1)
-        
         output = []
         
-        output.append(f"{BLUE}╔═══════════════════════════╗{RESET}")
-        output.append(f"{BLUE}║{RESET}      TIC-TAC-TOE          {BLUE}║{RESET}")
-        output.append(f"{BLUE}╚═══════════════════════════╝{RESET}")
+        # Title
+        output.append("")
+        output.append(f"{CYAN}     TIC-TAC-TOE{RESET}")
         output.append("")
         
-        # Draw board
-        output.append("     0   1   2")
-        output.append("   ┌───┬───┬───┐")
-        
-        for y in range(3):
-            line = f" {y} │"
-            for x in range(3):
-                # Determine what to display
-                if self.board[y][x] == 'X':
-                    symbol = f"{RED}X{RESET}"
-                elif self.board[y][x] == 'O':
-                    symbol = f"{BLUE}O{RESET}"
-                else:
-                    symbol = ' '
-                    
-                # Highlight cursor position
-                if x == self.cursor_x and y == self.cursor_y and not self.game_over:
-                    line += f"{YELLOW} {symbol} {RESET}"
-                else:
-                    line += f" {symbol} "
-                    
-                if x < 2:
-                    line += "│"
-            line += "│"
-            output.append(line)
-            
-            if y < 2:
-                output.append("   ├───┼───┼───┤")
+        # Board
+        for row in range(3):
+            line = "     "
+            for col in range(3):
+                idx = row * 3 + col
+                cell = self.board[idx]
                 
-        output.append("   └───┴───┴───┘")
+                # Color based on player
+                if cell == 'X':
+                    cell_str = f"{BLUE}X{RESET}"
+                elif cell == 'O':
+                    cell_str = f"{RED}O{RESET}"
+                else:
+                    # Show position number
+                    cell_str = f"{YELLOW}{idx + 1}{RESET}"
+                    
+                # Highlight winning line
+                if self.winning_line and idx in self.winning_line:
+                    cell_str = f"{GREEN}{self.board[idx]}{RESET}"
+                    
+                line += f" {cell_str} "
+                if col < 2:
+                    line += "|" if IS_WSL else "│"
+                    
+            output.append(line)
+            if row < 2:
+                if IS_WSL:
+                    output.append("     ---+---+---")
+                else:
+                    output.append("     ───┼───┼───")
+                    
         output.append("")
         
         # Status
         if self.game_over:
-            if self.winner == 'tie':
-                output.append(f"{YELLOW}It's a tie!{RESET}")
+            if self.winner:
+                if self.winner == 'X':
+                    output.append(f"{GREEN}     You win!{RESET}")
+                else:
+                    output.append(f"{RED}     AI wins!{RESET}")
             else:
-                winner_color = RED if self.winner == 'X' else BLUE
-                output.append(f"{winner_color}Player {self.winner} wins!{RESET}")
-            output.append("\nPress R to play again")
+                output.append(f"{YELLOW}     It's a tie!{RESET}")
+            output.append("")
+            output.append("  Press R to play again")
         else:
-            player_color = RED if self.current_player == 'X' else BLUE
-            output.append(f"Current player: {player_color}{self.current_player}{RESET}")
-            
-            if self.ai_mode:
-                mode = "Easy AI" if self.ai_mode == 'easy' else "Hard AI"
-                output.append(f"Mode: vs {mode}")
+            if self.current_player == 'X':
+                output.append("     Your turn (X)")
             else:
-                output.append("Mode: Two Players")
+                output.append("     AI thinking...")
                 
-        output.append("\nControls: ←↑→↓ move, Space place, 1 Easy AI, 2 Hard AI, R reset, Q quit")
+        output.append("")
+        output.append("  Press 1-9 to play, Q to quit")
         
-        # Print all at once
-        print('\n'.join(output))
-        flush_output()
+        # Render based on platform
+        if IS_WSL:
+            render_frame_wsl(output)
+        else:
+            clear_screen()
+            print('\n'.join(output))
+            flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
-        enable_alternate_screen()
+        if not IS_WSL:
+            enable_alternate_screen()
         hide_cursor()
         clear_screen()
         
@@ -212,62 +213,39 @@ def main():
         game.draw()
         
         while True:
-            # Check for winner
-            winner = game.check_winner()
-            if winner and not game.game_over:
-                game.winner = winner
-                game.game_over = True
-                game.draw()
-                
-            # AI move
-            if not game.game_over and game.ai_mode and game.current_player == game.ai_symbol:
-                if game.ai_mode == 'easy':
-                    game.ai_move_easy()
-                else:
-                    game.ai_move_hard()
-                    
-                game.current_player = game.player_symbol
-                game.draw()
-                continue
-                
             # Handle input
             key = kb.get_key(0.1)
             if key:
                 if key == 'q' or key == 'Q':
                     break
                 elif key == 'r' or key == 'R':
-                    game.reset()
-                elif key == '1':
-                    game.reset()
-                    game.ai_mode = 'easy'
-                elif key == '2':
-                    game.reset()
-                    game.ai_mode = 'hard'
-                elif not game.game_over:
-                    if key == 'UP':
-                        game.cursor_y = max(0, game.cursor_y - 1)
-                    elif key == 'DOWN':
-                        game.cursor_y = min(2, game.cursor_y + 1)
-                    elif key == 'LEFT':
-                        game.cursor_x = max(0, game.cursor_x - 1)
-                    elif key == 'RIGHT':
-                        game.cursor_x = min(2, game.cursor_x + 1)
-                    elif key == ' ':
-                        if game.make_move(game.cursor_x, game.cursor_y, game.current_player):
-                            # Switch player
-                            if game.ai_mode:
-                                game.current_player = game.ai_symbol
-                            else:
-                                game.current_player = 'O' if game.current_player == 'X' else 'X'
-                                
-                game.draw()
+                    game = TicTacToe()
+                    game.draw()
+                elif key in '123456789' and not game.game_over:
+                    position = int(key) - 1
+                    if game.make_move(position, 'X'):
+                        game.check_winner()
+                        game.draw()
+                        
+                        # AI move
+                        if not game.game_over:
+                            # Small delay for AI "thinking"
+                            import time
+                            time.sleep(0.5)
+                            
+                            ai_move = game.get_ai_move()
+                            if ai_move is not None:
+                                game.make_move(ai_move, 'O')
+                                game.check_winner()
+                                game.draw()
                                 
     except KeyboardInterrupt:
         pass
     finally:
         kb.cleanup()
         show_cursor()
-        disable_alternate_screen()
+        if not IS_WSL:
+            disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":

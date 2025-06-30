@@ -12,7 +12,8 @@ from datetime import datetime
 from .terminal_utils import (
     clear_screen, enable_ansi_colors, hide_cursor, show_cursor,
     get_terminal_size, KeyboardInput, flush_output,
-    enable_alternate_screen, disable_alternate_screen, move_cursor
+    enable_alternate_screen, disable_alternate_screen, move_cursor,
+    IS_WSL, render_frame_wsl
 )
 
 # Colors
@@ -27,17 +28,17 @@ RESET = '\033[0m'
 
 # 7-segment display patterns
 DIGITS = {
-    '0': ["  ███  ", " █   █ ", "█     █", "█     █", "█     █", " █   █ ", "  ███  "],
-    '1': ["   █   ", "  ██   ", "   █   ", "   █   ", "   █   ", "   █   ", " █████ "],
-    '2': [" █████ ", "█     █", "      █", " █████ ", "█      ", "█      ", "███████"],
-    '3': [" █████ ", "█     █", "      █", " █████ ", "      █", "█     █", " █████ "],
-    '4': ["█      ", "█    █ ", "█    █ ", "███████", "     █ ", "     █ ", "     █ "],
-    '5': ["███████", "█      ", "█      ", "██████ ", "      █", "█     █", " █████ "],
-    '6': [" █████ ", "█     █", "█      ", "██████ ", "█     █", "█     █", " █████ "],
-    '7': ["███████", "█     █", "     █ ", "    █  ", "   █   ", "   █   ", "   █   "],
-    '8': [" █████ ", "█     █", "█     █", " █████ ", "█     █", "█     █", " █████ "],
-    '9': [" █████ ", "█     █", "█     █", " ██████", "      █", "█     █", " █████ "],
-    ':': ["       ", "   ██  ", "   ██  ", "       ", "   ██  ", "   ██  ", "       "],
+    '0': ["  ###  ", " #   # ", "#     #", "#     #", "#     #", " #   # ", "  ###  "],
+    '1': ["   #   ", "  ##   ", "   #   ", "   #   ", "   #   ", "   #   ", " ##### "],
+    '2': [" ##### ", "#     #", "      #", " ##### ", "#      ", "#      ", "#######"],
+    '3': [" ##### ", "#     #", "      #", " ##### ", "      #", "#     #", " ##### "],
+    '4': ["#      ", "#    # ", "#    # ", "#######", "     # ", "     # ", "     # "],
+    '5': ["#######", "#      ", "#      ", "###### ", "      #", "#     #", " ##### "],
+    '6': [" ##### ", "#     #", "#      ", "###### ", "#     #", "#     #", " ##### "],
+    '7': ["#######", "#     #", "     # ", "    #  ", "   #   ", "   #   ", "   #   "],
+    '8': [" ##### ", "#     #", "#     #", " ##### ", "#     #", "#     #", " ##### "],
+    '9': [" ##### ", "#     #", "#     #", " ######", "      #", "#     #", " ##### "],
+    ':': ["       ", "   ##  ", "   ##  ", "       ", "   ##  ", "   ##  ", "       "],
     ' ': ["       ", "       ", "       ", "       ", "       ", "       ", "       "]
 }
 
@@ -59,7 +60,7 @@ class ASCIIClock:
             x = int(self.radius + self.radius * math.cos(math.radians(angle))) * 2
             y = int(self.radius + self.radius * math.sin(math.radians(angle)))
             if 0 <= x < diameter * 2 and 0 <= y < diameter:
-                clock[y][x] = '·'
+                clock[y][x] = '.' if IS_WSL else '·'
                 
         # Draw hour markers
         for i in range(12):
@@ -67,7 +68,7 @@ class ASCIIClock:
             x = int(self.radius + (self.radius - 1) * math.cos(angle)) * 2
             y = int(self.radius + (self.radius - 1) * math.sin(angle))
             if 0 <= x < diameter * 2 and 0 <= y < diameter:
-                clock[y][x] = str((i + 11) % 12 + 1) if i % 3 == 0 else '°'
+                clock[y][x] = str((i + 11) % 12 + 1) if i % 3 == 0 else ('o' if IS_WSL else '°')
                 
         # Draw hands
         # Hour hand
@@ -76,7 +77,7 @@ class ASCIIClock:
             x = int(self.radius + r * math.cos(hour_angle)) * 2
             y = int(self.radius + r * math.sin(hour_angle))
             if 0 <= x < diameter * 2 and 0 <= y < diameter:
-                clock[y][x] = '█'
+                clock[y][x] = '#' if IS_WSL else '█'
                 
         # Minute hand
         minute_angle = math.radians(minute * 6 - 90)
@@ -84,7 +85,7 @@ class ASCIIClock:
             x = int(self.radius + r * math.cos(minute_angle)) * 2
             y = int(self.radius + r * math.sin(minute_angle))
             if 0 <= x < diameter * 2 and 0 <= y < diameter:
-                clock[y][x] = '▓'
+                clock[y][x] = '=' if IS_WSL else '▓'
                 
         # Second hand
         second_angle = math.radians(second * 6 - 90)
@@ -92,23 +93,23 @@ class ASCIIClock:
             x = int(self.radius + r * math.cos(second_angle)) * 2
             y = int(self.radius + r * math.sin(second_angle))
             if 0 <= x < diameter * 2 and 0 <= y < diameter:
-                if clock[y][x] == ' ' or clock[y][x] == '·':
-                    clock[y][x] = '│' if abs(math.sin(second_angle)) > 0.5 else '─'
+                if clock[y][x] == ' ' or clock[y][x] in '.·':
+                    clock[y][x] = '|' if abs(math.sin(second_angle)) > 0.5 else '-'
                     
         # Center
-        clock[self.radius][self.radius * 2] = '●'
+        clock[self.radius][self.radius * 2] = '*' if IS_WSL else '●'
         
         # Convert to strings with colors
         for row in clock:
             line = ""
             for char in row:
-                if char == '█':
+                if char in '#█':
                     line += f"{BLUE}{char}{RESET}"
-                elif char == '▓':
+                elif char in '=▓':
                     line += f"{GREEN}{char}{RESET}"
-                elif char in '│─':
+                elif char in '│─|-':
                     line += f"{RED}{char}{RESET}"
-                elif char == '●':
+                elif char in '*●':
                     line += f"{YELLOW}{char}{RESET}"
                 elif char.isdigit():
                     line += f"{CYAN}{char}{RESET}"
@@ -133,7 +134,7 @@ class ASCIIClock:
         for line in lines:
             colored_line = ""
             for char in line:
-                if char == '█':
+                if char == '#':
                     colored_line += f"{GREEN}{char}{RESET}"
                 else:
                     colored_line += char
@@ -143,8 +144,6 @@ class ASCIIClock:
         
     def draw(self):
         """Draw the clock"""
-        move_cursor(1, 1)
-        
         now = datetime.now()
         hour = now.hour
         minute = now.minute
@@ -152,10 +151,17 @@ class ASCIIClock:
         
         output = []
         
-        # Header
-        output.append(f"\n{CYAN}╔═══════════════════════════════════════════════════════╗{RESET}")
-        output.append(f"{CYAN}║{RESET}                    ASCII CLOCK                        {CYAN}║{RESET}")
-        output.append(f"{CYAN}╚═══════════════════════════════════════════════════════╝{RESET}\n")
+        # Header - use simple characters for WSL
+        output.append("")
+        if IS_WSL:
+            output.append(f"{CYAN}+{'=' * 55}+{RESET}")
+            output.append(f"{CYAN}|{RESET}                    ASCII CLOCK                        {CYAN}|{RESET}")
+            output.append(f"{CYAN}+{'=' * 55}+{RESET}")
+        else:
+            output.append(f"{CYAN}╔{'═' * 55}╗{RESET}")
+            output.append(f"{CYAN}║{RESET}                    ASCII CLOCK                        {CYAN}║{RESET}")
+            output.append(f"{CYAN}╚{'═' * 55}╝{RESET}")
+        output.append("")
         
         if self.mode == 'analog' or self.mode == 'both':
             analog_lines = self.draw_analog_clock(hour, minute, second)
@@ -179,16 +185,21 @@ class ASCIIClock:
         output.append(f"\n{WHITE}Mode: {self.mode.upper()}{RESET}")
         output.append("Controls: A analog, D digital, B both, Q quit")
         
-        # Print all at once
-        print('\n'.join(output))
-        flush_output()
+        # Render based on platform
+        if IS_WSL:
+            render_frame_wsl(output)
+        else:
+            clear_screen()
+            print('\n'.join(output))
+            flush_output()
 
 def main():
     enable_ansi_colors()
     kb = KeyboardInput()
     
     try:
-        enable_alternate_screen()
+        if not IS_WSL:
+            enable_alternate_screen()
         hide_cursor()
         clear_screen()
         
@@ -216,7 +227,8 @@ def main():
     finally:
         kb.cleanup()
         show_cursor()
-        disable_alternate_screen()
+        if not IS_WSL:
+            disable_alternate_screen()
         clear_screen()
 
 if __name__ == "__main__":
