@@ -4,6 +4,20 @@ A collection of fun and interactive terminal animations and utilities! Each toy 
 - **Cross-platform versions** - Work on Windows, macOS, and Linux
 - **Windows-optimized versions** - In the `windows/` directory
 
+## 🚀 Quick Start (Windows Executable)
+
+For Windows users, the easiest way to enjoy Terminal Toys is using the standalone executable:
+
+1. **Download** `TerminalToys.exe` from the [releases page](https://github.com/kaileh57/terminal-toys/releases)
+2. **Run** the executable by double-clicking or from command line:
+   ```cmd
+   TerminalToys.exe
+   ```
+3. **Play** - Select games from the menu using number keys (1-11)
+4. **Quit** - Press Q to exit
+
+No Python installation required! The executable includes all Windows-optimized versions of the games.
+
 ## 🎨 Animations & Utilities
 
 ### 1. **Bouncing Balls** ⚪
@@ -75,6 +89,12 @@ Matrix-style falling characters.
 
 ## 🚀 Usage
 
+### Windows Executable (Recommended for Windows)
+```cmd
+# Simply run the executable
+TerminalToys.exe
+```
+
 ### Cross-Platform (Windows/macOS/Linux)
 ```bash
 # Run any toy directly
@@ -126,6 +146,11 @@ python windows\matrix_rain.py
 - **Single file**: Each toy is self-contained in a single Python file
 
 ## 🐛 Troubleshooting
+
+### Using the Windows Executable?
+- **Antivirus warning**: Some antivirus software may flag the executable. This is a false positive common with PyInstaller-built executables. You can safely allow it.
+- **Not starting**: Make sure you're running Windows 10 or later with proper terminal support
+- **Games not loading**: Try running from Command Prompt or PowerShell instead of double-clicking
 
 ### Colors not working?
 - **Windows**: Make sure you're using Windows 10 or later, or try Windows Terminal

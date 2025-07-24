@@ -2,7 +2,21 @@
 
 ## Installation
 
-To install terminal-toys, run the following command:
+### Windows Executable (Standalone)
+
+For Windows users, a standalone executable is available that doesn't require Python installation:
+
+1. Download `TerminalToys.exe` from the releases page
+2. Double-click to run or execute from Command Prompt/PowerShell:
+   ```cmd
+   TerminalToys.exe
+   ```
+3. Select games from the interactive menu using number keys (1-11)
+4. Press Q to quit the application
+
+### Python Installation
+
+To install terminal-toys using Python, run the following command:
 
 ```bash
 pip install git+https://github.com/kaileh57/terminal-toys.git
